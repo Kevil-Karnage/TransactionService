@@ -7,7 +7,7 @@ import nflx.rozhnov.transactionservice.service.TransactionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.ZonedDateTime;
+import java.util.Date;
 import java.util.UUID;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
@@ -21,7 +21,7 @@ public class TransactionController {
 
     @GetMapping("/check")
     public TransactionRs check() {
-        return new TransactionRs(UUID.randomUUID(), ZonedDateTime.now());
+        return new TransactionRs(UUID.randomUUID(), new Date());
     }
 
     @PostMapping("/new")

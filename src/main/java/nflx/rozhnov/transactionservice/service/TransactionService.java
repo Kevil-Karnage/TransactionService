@@ -15,7 +15,7 @@ import nflx.rozhnov.transactionservice.repository.TransactionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.ZonedDateTime;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -41,7 +41,7 @@ public class TransactionService {
 
         Transaction transaction = new Transaction(
                 UUID.randomUUID(),
-                ZonedDateTime.now(),
+                new Date(),
                 rq.getFromAccount(),
                 rq.getToAccount(),
                 rq.getAmount()

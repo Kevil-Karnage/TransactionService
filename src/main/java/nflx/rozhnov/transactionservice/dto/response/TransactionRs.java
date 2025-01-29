@@ -2,7 +2,7 @@ package nflx.rozhnov.transactionservice.dto.response;
 
 import lombok.*;
 
-import java.time.ZonedDateTime;
+import java.util.Date;
 import java.util.UUID;
 
 @Getter
@@ -12,5 +12,5 @@ import java.util.UUID;
 @AllArgsConstructor
 public class TransactionRs {
     private UUID transactionId;
-    private ZonedDateTime timestamp;
+    private Date timestamp;
 }
