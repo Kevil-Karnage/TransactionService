@@ -7,6 +7,7 @@ import nflx.rozhnov.transactionservice.dto.response.TransactionRs;
 import nflx.rozhnov.transactionservice.exception.AccountNotEnoughBalanceException;
 import nflx.rozhnov.transactionservice.exception.AccountNotFoundException;
 import nflx.rozhnov.transactionservice.exception.TransactionNotFoundException;
+import nflx.rozhnov.transactionservice.exception.TransactionSaveException;
 import nflx.rozhnov.transactionservice.model.Account;
 import nflx.rozhnov.transactionservice.model.Transaction;
 import nflx.rozhnov.transactionservice.repository.AccountRepository;
@@ -15,7 +16,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -48,13 +48,17 @@ public class TransactionService {
         );
 
         // сохраняем результат
-        from.setBalance(from.getBalance() - rq.getAmount());
-        accountRepository.save(from);
+        try {
+            transaction = transactionRepository.save(transaction);
 
-        to.setBalance(to.getBalance() + rq.getAmount());
-        accountRepository.save(to);
+            from.setBalance(from.getBalance() - rq.getAmount());
+            accountRepository.save(from);
 
-        transaction = transactionRepository.save(transaction);
+            to.setBalance(to.getBalance() + rq.getAmount());
+            accountRepository.save(to);
+        } catch (Exception ex) {
+            throw new TransactionSaveException();
+        }
 
         // создаем ответ и возвращаем
         return new TransactionRs(transaction.getId(), transaction.getTimestamp());
@@ -67,8 +71,7 @@ public class TransactionService {
     }
 
     public TransactionHistoryRs getAccountTransactions(long accountId) {
-        List<Transaction> transactionsHistoryList = new ArrayList<>();
-        transactionsHistoryList = transactionRepository.findAllByAccountId(accountId);
+        List<Transaction> transactionsHistoryList = transactionRepository.findAllByAccountId(accountId);
 
         return new TransactionHistoryRs(accountId, transactionsHistoryList);
     }
