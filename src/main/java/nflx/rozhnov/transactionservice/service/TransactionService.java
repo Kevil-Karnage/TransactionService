@@ -3,6 +3,7 @@ package nflx.rozhnov.transactionservice.service;
 import nflx.rozhnov.transactionservice.dto.request.TransactionGetRq;
 import nflx.rozhnov.transactionservice.dto.request.TransactionNewRq;
 import nflx.rozhnov.transactionservice.dto.response.TransactionHistoryRs;
+import nflx.rozhnov.transactionservice.dto.response.TransactionNewRs;
 import nflx.rozhnov.transactionservice.dto.response.TransactionRs;
 import nflx.rozhnov.transactionservice.exception.AccountNotEnoughBalanceException;
 import nflx.rozhnov.transactionservice.exception.AccountNotFoundException;
@@ -30,7 +31,7 @@ public class TransactionService {
     private AccountRepository accountRepository;
 
 
-    public TransactionRs createNewTransaction(TransactionNewRq rq) throws AccountNotFoundException{
+    public TransactionNewRs createNewTransaction(TransactionNewRq rq) throws AccountNotFoundException{
         // 1) проверяем аккаунты
         Account from = getAccountById(rq.getFromAccount());
         Account to = getAccountById(rq.getToAccount());
@@ -61,19 +62,36 @@ public class TransactionService {
         }
 
         // создаем ответ и возвращаем
-        return new TransactionRs(transaction.getId(), transaction.getTimestamp());
+        return new TransactionNewRs(transaction.getId(), transaction.getTimestamp());
     }
 
     public TransactionRs getTransactionById(TransactionGetRq rq) {
         Transaction transaction = getTransactionById(rq.getTransactionId());
 
-        return new TransactionRs(transaction.getId(), transaction.getTimestamp());
+        return new TransactionRs(
+                transaction.getId(),
+                transaction.getTimestamp(),
+                transaction.getFromAccount(),
+                transaction.getToAccount(),
+                transaction.getAmount());
     }
 
     public TransactionHistoryRs getAccountTransactions(long accountId) {
-        List<Transaction> transactionsHistoryList = transactionRepository.findAllByAccountId(accountId);
+        // проверяем существование аккаунта
+        getAccountById(accountId);
 
-        return new TransactionHistoryRs(accountId, transactionsHistoryList);
+        // ищем список всех транзакций и собираем response
+        List<TransactionRs> rsList = transactionRepository.findAllByAccountId(accountId).stream()
+                .map(tr -> new TransactionRs(
+                        tr.getId(),
+                        tr.getTimestamp(),
+                        tr.getFromAccount(),
+                        tr.getToAccount(),
+                        tr.getAmount()
+                ))
+                .toList();
+
+        return new TransactionHistoryRs(accountId, rsList);
     }
 
 

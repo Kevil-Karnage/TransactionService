@@ -2,6 +2,7 @@ package nflx.rozhnov.transactionservice.controller;
 
 import nflx.rozhnov.transactionservice.dto.request.TransactionGetRq;
 import nflx.rozhnov.transactionservice.dto.request.TransactionNewRq;
+import nflx.rozhnov.transactionservice.dto.response.TransactionNewRs;
 import nflx.rozhnov.transactionservice.dto.response.TransactionRs;
 import nflx.rozhnov.transactionservice.service.TransactionService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +18,7 @@ public class TransactionController {
     private TransactionService service;
 
     @PostMapping("/new")
-    public TransactionRs createNew(@RequestBody TransactionNewRq rq) {
+    public TransactionNewRs createNew(@RequestBody TransactionNewRq rq) {
         return service.createNewTransaction(rq);
     }
 
