@@ -76,6 +76,8 @@ public class TransactionService {
         return new TransactionHistoryRs(accountId, transactionsHistoryList);
     }
 
+
+
     private Account getAccountById(long accountId) throws AccountNotFoundException {
         Optional<Account> accountOptional = accountRepository.findById(accountId);
 

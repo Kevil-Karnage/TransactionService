@@ -7,9 +7,6 @@ import nflx.rozhnov.transactionservice.service.TransactionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Date;
-import java.util.UUID;
-
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
 @RestController
@@ -18,11 +15,6 @@ public class TransactionController {
 
     @Autowired
     private TransactionService service;
-
-    @GetMapping("/check")
-    public TransactionRs check() {
-        return new TransactionRs(UUID.randomUUID(), new Date());
-    }
 
     @PostMapping("/new")
     public TransactionRs createNew(@RequestBody TransactionNewRq rq) {
