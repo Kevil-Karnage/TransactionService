@@ -1,14 +1,10 @@
 package nflx.rozhnov.transactionservice.dto.request;
 
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 
-@Getter
-@Setter
-@Builder
-@ToString
+@Data
+@AllArgsConstructor
 public class TransactionNewRq {
     private Long fromAccount;
     private Long toAccount;

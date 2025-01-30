@@ -7,7 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 
-import java.time.ZonedDateTime;
+import java.util.Date;
 import java.util.UUID;
 
 @Data
@@ -18,7 +18,7 @@ public class Transaction {
     @Id
     @GeneratedValue
     private UUID id;
-    private ZonedDateTime timestamp;
+    private Date timestamp;
     private long fromAccount;
     private long toAccount;
     private double amount;

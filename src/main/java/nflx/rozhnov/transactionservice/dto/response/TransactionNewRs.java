@@ -10,10 +10,7 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TransactionRs {
+public class TransactionNewRs {
     private UUID transactionId;
     private Date timestamp;
-    private long fromAccount;
-    private long toAccount;
-    private double amount;
 }
