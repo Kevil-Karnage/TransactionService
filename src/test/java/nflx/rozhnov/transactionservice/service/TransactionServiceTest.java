@@ -8,6 +8,7 @@ import nflx.rozhnov.transactionservice.dto.response.TransactionRs;
 import nflx.rozhnov.transactionservice.exception.AccountNotEnoughBalanceException;
 import nflx.rozhnov.transactionservice.exception.AccountNotFoundException;
 import nflx.rozhnov.transactionservice.exception.TransactionNotFoundException;
+import nflx.rozhnov.transactionservice.kafka.KafkaProducer;
 import nflx.rozhnov.transactionservice.model.Account;
 import nflx.rozhnov.transactionservice.model.Transaction;
 import nflx.rozhnov.transactionservice.repository.AccountRepository;
@@ -31,14 +32,15 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class TransactionServiceTest {
-
-    @InjectMocks
-    TransactionService service = new TransactionService();
-
+    @Mock
+    TransactionRepository transactionRepository;
     @Mock
     AccountRepository accountRepository;
     @Mock
-    TransactionRepository transactionRepository;
+    KafkaProducer kafkaProducer;
+
+    @InjectMocks
+    TransactionService service = new TransactionService(transactionRepository, accountRepository, kafkaProducer);
 
     private final long ACCOUNT_ID_1 = 111L;
     private final long ACCOUNT_ID_2 = 222L;
@@ -56,18 +58,18 @@ class TransactionServiceTest {
     @Test
     @DisplayName("createNewTransaction - correct")
     void createNewTransaction_correct() {
-        // Data
+        // Данные
         TransactionNewRq rq = new TransactionNewRq(ACCOUNT_ID_1, ACCOUNT_ID_2, SMALL_AMOUNT);
 
-        // Mockito
+        // Моки
         when(accountRepository.findById(ACCOUNT_ID_1)).thenReturn(Optional.of(ACCOUNT_1));
         when(accountRepository.findById(ACCOUNT_ID_2)).thenReturn(Optional.of(ACCOUNT_2));
         when(transactionRepository.save(any())).thenReturn(TRANSACTION_1);
 
-        // Request
+        // Запрос
         TransactionNewRs rs = service.createNewTransaction(rq);
 
-        // Check
+        // Проверка
         assertThat(rs).isNotNull();
         assertThat(rs.getTransactionId()).isNotNull();
         assertThat(rs.getTimestamp()).isNotNull();
@@ -78,13 +80,13 @@ class TransactionServiceTest {
     @Test
     @DisplayName("createNewTransaction - not found first account")
     void createNewTransaction_notFoundFirstAccount() {
-        // Data
+        // Данные
         TransactionNewRq rq = new TransactionNewRq(ACCOUNT_ID_1, ACCOUNT_ID_2, SMALL_AMOUNT);
 
-        // Mockito
+        // Моки
         when(accountRepository.findById(ACCOUNT_ID_1)).thenReturn(Optional.empty());
 
-        // Request + Check
+        // Запрос + Проверка
         Assertions.assertThatThrownBy(() -> service.createNewTransaction(rq))
                 .isInstanceOf(AccountNotFoundException.class)
                 .hasMessageContaining(new AccountNotFoundException().getMessage());
@@ -93,14 +95,14 @@ class TransactionServiceTest {
     @Test
     @DisplayName("createNewTransaction - not found second account")
     void createNewTransaction_notFoundSecondAccount() {
-        // Data
+        // Данные
         TransactionNewRq rq = new TransactionNewRq(ACCOUNT_ID_1, ACCOUNT_ID_2, SMALL_AMOUNT);
 
-        // Mockito
+        // Моки
         when(accountRepository.findById(ACCOUNT_ID_1)).thenReturn(Optional.of(ACCOUNT_1));
         when(accountRepository.findById(ACCOUNT_ID_2)).thenReturn(Optional.empty());
 
-        // Request + Check
+        // Запрос + Проверка
         Assertions.assertThatThrownBy(() -> service.createNewTransaction(rq))
                 .isInstanceOf(AccountNotFoundException.class)
                 .hasMessageContaining(new AccountNotFoundException().getMessage());
@@ -109,14 +111,14 @@ class TransactionServiceTest {
     @Test
     @DisplayName("createNewTransaction - firstAccountDoesNotHaveEnoughMoney")
     void createNewTransaction_firstAccountDoesNotHaveEnoughMoney() {
-        // Data
+        // Данные
         TransactionNewRq rq = new TransactionNewRq(ACCOUNT_ID_1, ACCOUNT_ID_2, BIG_AMOUNT);
 
-        // Mockito
+        // Моки
         when(accountRepository.findById(ACCOUNT_ID_1)).thenReturn(Optional.of(ACCOUNT_1));
         when(accountRepository.findById(ACCOUNT_ID_2)).thenReturn(Optional.of(ACCOUNT_2));
 
-        // Request + Check
+        // Запрос + Проверка
         Assertions.assertThatThrownBy(() -> service.createNewTransaction(rq))
                 .isInstanceOf(AccountNotEnoughBalanceException.class)
                 .hasMessageContaining(new AccountNotEnoughBalanceException().getMessage());
@@ -125,13 +127,13 @@ class TransactionServiceTest {
     @Test
     @DisplayName("getTransactionById - correct")
     void getTransactionById() {
-        // Data
+        // Данные
         TransactionGetRq rq = new TransactionGetRq(TRANSACTION_ID_1);
 
-        // Mockito
+        // Моки
         when(transactionRepository.findById(TRANSACTION_ID_1)).thenReturn(Optional.of(TRANSACTION_1));
 
-        // Request
+        // Запрос
         TransactionRs rs = service.getTransactionById(rq);
 
         assertThat(rs).isNotNull();
@@ -145,13 +147,13 @@ class TransactionServiceTest {
     @Test
     @DisplayName("getTransactionById - not found transaction")
     void getTransactionById_notFound() {
-        // Data
+        // Данные
         TransactionGetRq rq = new TransactionGetRq(TRANSACTION_ID_1);
 
-        // Mockito
+        // Моки
         when(transactionRepository.findById(TRANSACTION_ID_1)).thenReturn(Optional.empty());
 
-        // Request + Check
+        // Запрос + Проверка
         Assertions.assertThatThrownBy(() -> service.getTransactionById(rq))
                 .isInstanceOf(TransactionNotFoundException.class)
                 .hasMessageContaining(new TransactionNotFoundException().getMessage());
@@ -161,7 +163,7 @@ class TransactionServiceTest {
     @Test
     @DisplayName("getAccountTransactions - correct")
     void getAccountTransactions() {
-        // Data
+        // Данные
         final Transaction TRANSACTION_2 = new Transaction(
                 UUID.randomUUID(),
                 new Date(),
@@ -171,14 +173,14 @@ class TransactionServiceTest {
         );
         List<Transaction> expectedTransactions = List.of(TRANSACTION_1, TRANSACTION_2);
 
-        // Mockito
+        // Моки
         when(accountRepository.findById(ACCOUNT_ID_1)).thenReturn(Optional.of(ACCOUNT_1));
         when(transactionRepository.findAllByAccountId(ACCOUNT_ID_1)).thenReturn(expectedTransactions);
 
-        // Request
+        // Запрос
         TransactionHistoryRs rs = service.getAccountTransactions(ACCOUNT_ID_1);
 
-        // Check
+        // Проверка
         assertThat(rs.getTransactions().size()).isEqualTo(expectedTransactions.size());
         for (int i = 0; i < expectedTransactions.size(); i++) {
             TransactionRs fromRs = rs.getTransactions().get(i);
@@ -195,10 +197,10 @@ class TransactionServiceTest {
     @Test
     @DisplayName("getAccountTransactions - not found accountId")
     void getAccountTransactions_notFoundAccountId() {
-        // Mockito
+        // Моки
         when(accountRepository.findById(ACCOUNT_ID_1)).thenReturn(Optional.empty());
 
-        // Request + Check
+        // Запрос + Проверка
         Assertions.assertThatThrownBy(() -> service.getAccountTransactions(ACCOUNT_ID_1))
                 .isInstanceOf(AccountNotFoundException.class)
                 .hasMessageContaining(new AccountNotFoundException().getMessage());

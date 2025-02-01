@@ -1,5 +1,6 @@
 package nflx.rozhnov.transactionservice.service;
 
+import lombok.RequiredArgsConstructor;
 import nflx.rozhnov.transactionservice.dto.request.TransactionGetRq;
 import nflx.rozhnov.transactionservice.dto.request.TransactionNewRq;
 import nflx.rozhnov.transactionservice.dto.response.TransactionHistoryRs;
@@ -9,11 +10,11 @@ import nflx.rozhnov.transactionservice.exception.AccountNotEnoughBalanceExceptio
 import nflx.rozhnov.transactionservice.exception.AccountNotFoundException;
 import nflx.rozhnov.transactionservice.exception.TransactionNotFoundException;
 import nflx.rozhnov.transactionservice.exception.TransactionSaveException;
+import nflx.rozhnov.transactionservice.kafka.KafkaProducer;
 import nflx.rozhnov.transactionservice.model.Account;
 import nflx.rozhnov.transactionservice.model.Transaction;
 import nflx.rozhnov.transactionservice.repository.AccountRepository;
 import nflx.rozhnov.transactionservice.repository.TransactionRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
@@ -22,14 +23,11 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class TransactionService {
-
-    @Autowired
-    private TransactionRepository transactionRepository;
-
-    @Autowired
-    private AccountRepository accountRepository;
-
+    private final TransactionRepository transactionRepository;
+    private final AccountRepository accountRepository;
+    private final KafkaProducer kafkaProducer;
 
     public TransactionNewRs createNewTransaction(TransactionNewRq rq) throws AccountNotFoundException{
         // 1) проверяем аккаунты
@@ -60,6 +58,8 @@ public class TransactionService {
         } catch (Exception ex) {
             throw new TransactionSaveException();
         }
+
+        kafkaProducer.sendMessage(transaction);
 
         // создаем ответ и возвращаем
         return new TransactionNewRs(transaction.getId(), transaction.getTimestamp());
