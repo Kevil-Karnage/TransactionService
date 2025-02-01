@@ -16,10 +16,11 @@ import nflx.rozhnov.transactionservice.model.Transaction;
 import nflx.rozhnov.transactionservice.repository.AccountRepository;
 import nflx.rozhnov.transactionservice.repository.TransactionRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -31,10 +32,12 @@ public class TransactionService {
 
     public TransactionNewRs createNewTransaction(TransactionNewRq rq) throws AccountNotFoundException{
         // 1) проверяем аккаунты
-        Account from = getAccountById(rq.getFromAccount());
-        Account to = getAccountById(rq.getToAccount());
+        Account from = accountRepository.findById(rq.getFromAccount())
+                .orElseThrow(AccountNotFoundException::new);
+        Account to = accountRepository.findById(rq.getToAccount())
+                .orElseThrow(AccountNotFoundException::new);
 
-        if (from.getBalance() < rq.getAmount()) {
+        if (from.getBalance().compareTo(rq.getAmount()) < 0) {
             throw new AccountNotEnoughBalanceException();
         }
 
@@ -47,17 +50,11 @@ public class TransactionService {
         );
 
         // сохраняем результат
-        try {
-            transaction = transactionRepository.save(transaction);
 
-            from.setBalance(from.getBalance() - rq.getAmount());
-            accountRepository.save(from);
+        from.setBalance(from.getBalance().add(rq.getAmount().multiply(new BigDecimal("-1"))));
+        to.setBalance(to.getBalance().add(rq.getAmount()));
 
-            to.setBalance(to.getBalance() + rq.getAmount());
-            accountRepository.save(to);
-        } catch (Exception ex) {
-            throw new TransactionSaveException();
-        }
+        transaction = saveTransaction(transaction, from, to);
 
         kafkaProducer.sendMessage(transaction);
 
@@ -66,7 +63,8 @@ public class TransactionService {
     }
 
     public TransactionRs getTransactionById(TransactionGetRq rq) {
-        Transaction transaction = getTransactionById(rq.getTransactionId());
+        Transaction transaction = transactionRepository.findById(rq.getTransactionId())
+                .orElseThrow(TransactionNotFoundException::new);
 
         return new TransactionRs(
                 transaction.getId(),
@@ -78,7 +76,7 @@ public class TransactionService {
 
     public TransactionHistoryRs getAccountTransactions(long accountId) {
         // проверяем существование аккаунта
-        getAccountById(accountId);
+        accountRepository.findById(accountId).orElseThrow(AccountNotFoundException::new);
 
         // ищем список всех транзакций и собираем response
         List<TransactionRs> rsList = transactionRepository.findAllByAccountId(accountId).stream()
@@ -94,21 +92,29 @@ public class TransactionService {
         return new TransactionHistoryRs(accountId, rsList);
     }
 
+    @Transactional
+    private Transaction saveTransaction(Transaction transaction, Account from, Account to) {
+        try {
+            transaction = transactionRepository.save(transaction);
+        } catch (Exception ex) {
+            throw new TransactionSaveException();
+        }
 
+        try {
+            accountRepository.save(from);
+        } catch (Exception ex) {
+            transactionRepository.deleteById(transaction.getId());
+            throw new TransactionSaveException();
+        }
 
-    private Account getAccountById(long accountId) throws AccountNotFoundException {
-        Optional<Account> accountOptional = accountRepository.findById(accountId);
+        try {
+            accountRepository.save(to);
+        } catch (Exception ex) {
+            transactionRepository.deleteById(transaction.getId());
+            accountRepository.deleteById(from.getId());
+            throw new TransactionSaveException();
+        }
 
-        if (accountOptional.isEmpty()) throw new AccountNotFoundException();
-
-        return accountOptional.get();
-    }
-
-    private Transaction getTransactionById(UUID transactionId) throws TransactionNotFoundException {
-        Optional<Transaction> transactionOptional = transactionRepository.findById(transactionId);
-
-        if (transactionOptional.isEmpty()) throw new TransactionNotFoundException();
-
-        return transactionOptional.get();
+        return transaction;
     }
 }
