@@ -2,6 +2,6 @@ package nflx.rozhnov.transactionservice.exception;
 
 public class TransactionSaveException extends RuntimeException {
     public TransactionSaveException() {
-        super("Ошибка сохранения транзакции");
+        super("Error saving the transaction");
     }
 }
