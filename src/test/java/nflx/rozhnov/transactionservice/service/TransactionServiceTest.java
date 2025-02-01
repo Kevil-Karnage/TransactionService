@@ -21,6 +21,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -44,10 +45,10 @@ class TransactionServiceTest {
 
     private final long ACCOUNT_ID_1 = 111L;
     private final long ACCOUNT_ID_2 = 222L;
-    private final double ACCOUNT_BALANCE_1 = 100.99;
-    private final double ACCOUNT_BALANCE_2 = 200.99;
-    private final double SMALL_AMOUNT = 50;
-    private final double BIG_AMOUNT = 500;
+    private final BigDecimal ACCOUNT_BALANCE_1 = new BigDecimal("100.99");
+    private final BigDecimal ACCOUNT_BALANCE_2 = new BigDecimal("200.99");
+    private final BigDecimal SMALL_AMOUNT = new BigDecimal("50");
+    private final BigDecimal BIG_AMOUNT = new BigDecimal("500");
     private final UUID TRANSACTION_ID_1 = UUID.randomUUID();
     private final Date DATE_1 = new Date();
 
