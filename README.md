@@ -1,23 +1,47 @@
-# Transaction Service
+# Transaction Service сервис для взаимодействия с транзакциями
 
-## методы
+## Запуск
+
+В application.yml Необходимо изменить следующие строки всоответствии с вашим данными
+```
+  datasource:
+    url: jdbc:postgresql://localhost:5432/<databaseName>
+    username: <user>
+    password: <password>
+```
+#
+
+## Методы
 
 ### Получение транзакции по id
 ```
 POST /transactions/get  
 ```
-request body:
+Формат тела запроса:
 ```
 {
-    'transactionId': <UUID>
+    "transactionId": "<UUID>"
 }
 ```
+Формат ответа:
+```
+{
+    "transactionId": "<UUID>",
+    "timestamp": "<Date>",
+    "fromAccount": 111,
+    "toAccount": 222,
+    "amount": 50.99
+}
+```
+Коды возможных ошибок:
+* 404 - Транзакция с таким id не найдена
+#
 
 ### Перевод между аккаунтами
 ```
 POST /transactions/new
 ```
-request body:
+Формат тела запроса:
 ```
 {
     "fromAccount": 1,
@@ -25,8 +49,38 @@ request body:
     "amount": 33.44
 }
 ```
+Формат ответа:
+```
+{
+    "transactionId": "<UUID>",
+    "timestamp": "<Date>"
+}
+```
+Коды возможных ошибок:
+* 404 - Один из аккаунтов не найден
+* 400 - Недостаточно денег на балансе у fromAccount
+* 502 - Ошибка сохранения транзакции в базу данных
 
 ### Получение истории транзакций аккаунта
 ```
 GET /account/{id}/history
+```
+Формат ответа:
+```
+{
+    "accountId": 
+    transactions: [{
+        "transactionId": "<UUID>",
+        "timestamp": "<Date>",
+        "fromAccount": 111,
+        "toAccount": 222,
+        "amount": 50.99
+    }, {
+        "transactionId": "<UUID>",
+        "timestamp": "<Date>",
+        "fromAccount": 333,
+        "toAccount": 111,
+        "amount": 150.99
+    }]
+}
 ```
