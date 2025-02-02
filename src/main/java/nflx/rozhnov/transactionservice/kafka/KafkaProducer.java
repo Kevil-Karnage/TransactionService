@@ -27,10 +27,9 @@ public class KafkaProducer {
         try {
             String message = mapper.writeValueAsString(transaction);
 
-            log.info("Sending : {}", message);
+            log.info("|---| Sending : {}", message);
             kafkaTemplate.send(topicName, message);
-            log.info("Success");
-            log.info("--------------------------------");
+            log.info("|---| Kafka sending: Success |---|");
 
         } catch (Exception e) {
             throw new RuntimeException(e);

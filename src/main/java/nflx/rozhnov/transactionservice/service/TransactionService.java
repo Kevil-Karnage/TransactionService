@@ -1,6 +1,7 @@
 package nflx.rozhnov.transactionservice.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import nflx.rozhnov.transactionservice.dto.request.TransactionGetRq;
 import nflx.rozhnov.transactionservice.dto.request.TransactionNewRq;
 import nflx.rozhnov.transactionservice.dto.response.TransactionHistoryRs;
@@ -23,6 +24,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TransactionService {
@@ -31,6 +33,8 @@ public class TransactionService {
     private final KafkaProducer kafkaProducer;
 
     public TransactionNewRs createNewTransaction(TransactionNewRq rq) throws AccountNotFoundException{
+
+        log.info("---| Trying to create new transaction |---");
         // 1) проверяем аккаунты
         Account from = accountRepository.findById(rq.getFromAccount())
                 .orElseThrow(AccountNotFoundException::new);
@@ -55,6 +59,7 @@ public class TransactionService {
         to.setBalance(to.getBalance().add(rq.getAmount()));
 
         transaction = saveTransaction(transaction, from, to);
+        log.info("---| Transaction created: Success |---");
 
         kafkaProducer.sendMessage(transaction);
 
@@ -63,9 +68,12 @@ public class TransactionService {
     }
 
     public TransactionRs getTransactionById(TransactionGetRq rq) {
+        log.info("---| Trying to get transaction with id = {} |---", rq.getTransactionId());
+
         Transaction transaction = transactionRepository.findById(rq.getTransactionId())
                 .orElseThrow(TransactionNotFoundException::new);
 
+        log.info("---| Transaction creating: Success |---");
         return new TransactionRs(
                 transaction.getId(),
                 transaction.getTimestamp(),
@@ -75,6 +83,8 @@ public class TransactionService {
     }
 
     public TransactionHistoryRs getAccountTransactions(long accountId) {
+        log.info("---| Trying to get transactions history for account with id = {} |---", accountId);
+
         // проверяем существование аккаунта
         accountRepository.findById(accountId).orElseThrow(AccountNotFoundException::new);
 
@@ -89,6 +99,7 @@ public class TransactionService {
                 ))
                 .toList();
 
+        log.info("---| Get transaction history: Success |---");
         return new TransactionHistoryRs(accountId, rsList);
     }
 
