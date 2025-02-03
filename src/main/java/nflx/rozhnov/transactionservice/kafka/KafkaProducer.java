@@ -3,6 +3,7 @@ package nflx.rozhnov.transactionservice.kafka;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import nflx.rozhnov.transactionservice.exception.KafkaSendingException;
 import nflx.rozhnov.transactionservice.model.Transaction;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -32,8 +33,9 @@ public class KafkaProducer {
             log.info("|---| Kafka sending: Success |---|");
 
         } catch (Exception e) {
-            throw new RuntimeException(e);
-        }    }
+            throw new KafkaSendingException();
+        }
+    }
 
 
 }

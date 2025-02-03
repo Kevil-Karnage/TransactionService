@@ -1,10 +1,7 @@
 package nflx.rozhnov.transactionservice.controller.handler;
 
 import nflx.rozhnov.transactionservice.dto.response.ExceptionResponse;
-import nflx.rozhnov.transactionservice.exception.AccountNotEnoughBalanceException;
-import nflx.rozhnov.transactionservice.exception.AccountNotFoundException;
-import nflx.rozhnov.transactionservice.exception.TransactionNotFoundException;
-import nflx.rozhnov.transactionservice.exception.TransactionSaveException;
+import nflx.rozhnov.transactionservice.exception.*;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -32,7 +29,7 @@ public class TransactionExceptionHandler extends ResponseEntityExceptionHandler 
                 new HttpHeaders(), NOT_FOUND, request);
     }
 
-    @ExceptionHandler(value = TransactionSaveException.class)
+    @ExceptionHandler(value = {TransactionSaveException.class, KafkaSendingException.class})
     private ResponseEntity<Object> handleTransactionNotSavedException(RuntimeException ex, WebRequest request) {
         ExceptionResponse response = new ExceptionResponse(BAD_GATEWAY.value(), ex.getMessage());
         return handleExceptionInternal(ex, response,
