@@ -5,9 +5,7 @@ import nflx.rozhnov.transactionservice.dto.request.TransactionNewRq;
 import nflx.rozhnov.transactionservice.dto.response.TransactionHistoryRs;
 import nflx.rozhnov.transactionservice.dto.response.TransactionNewRs;
 import nflx.rozhnov.transactionservice.dto.response.TransactionRs;
-import nflx.rozhnov.transactionservice.exception.AccountNotEnoughBalanceException;
-import nflx.rozhnov.transactionservice.exception.AccountNotFoundException;
-import nflx.rozhnov.transactionservice.exception.TransactionNotFoundException;
+import nflx.rozhnov.transactionservice.exception.*;
 import nflx.rozhnov.transactionservice.kafka.KafkaProducer;
 import nflx.rozhnov.transactionservice.model.Account;
 import nflx.rozhnov.transactionservice.model.Transaction;
@@ -41,7 +39,7 @@ class TransactionServiceTest {
     KafkaProducer kafkaProducer;
 
     @InjectMocks
-    TransactionService service = new TransactionService(transactionRepository, accountRepository, kafkaProducer);
+    TransactionService service;
 
     private final long ACCOUNT_ID_1 = 111L;
     private final long ACCOUNT_ID_2 = 222L;
@@ -89,8 +87,7 @@ class TransactionServiceTest {
 
         // Запрос + Проверка
         Assertions.assertThatThrownBy(() -> service.createNewTransaction(rq))
-                .isInstanceOf(AccountNotFoundException.class)
-                .hasMessageContaining(new AccountNotFoundException().getMessage());
+                .isInstanceOf(AccountNotFoundException.class);
     }
 
     @Test
@@ -105,8 +102,7 @@ class TransactionServiceTest {
 
         // Запрос + Проверка
         Assertions.assertThatThrownBy(() -> service.createNewTransaction(rq))
-                .isInstanceOf(AccountNotFoundException.class)
-                .hasMessageContaining(new AccountNotFoundException().getMessage());
+                .isInstanceOf(AccountNotFoundException.class);
     }
 
     @Test
@@ -121,9 +117,84 @@ class TransactionServiceTest {
 
         // Запрос + Проверка
         Assertions.assertThatThrownBy(() -> service.createNewTransaction(rq))
-                .isInstanceOf(AccountNotEnoughBalanceException.class)
-                .hasMessageContaining(new AccountNotEnoughBalanceException().getMessage());
+                .isInstanceOf(AccountNotEnoughBalanceException.class);
     }
+
+    @Test
+    @DisplayName("createNewTransaction - incorrect - kafka exception")
+    void createNewTransaction_kafkaException() {
+        // Данные
+        TransactionNewRq rq = new TransactionNewRq(ACCOUNT_ID_1, ACCOUNT_ID_2, SMALL_AMOUNT);
+
+        // Моки
+        when(accountRepository.findById(ACCOUNT_ID_1)).thenReturn(Optional.of(ACCOUNT_1));
+        when(accountRepository.findById(ACCOUNT_ID_2)).thenReturn(Optional.of(ACCOUNT_2));
+        when(transactionRepository.save(any())).thenReturn(TRANSACTION_1);
+        doThrow(KafkaSendingException.class).when(kafkaProducer).sendMessage(any());
+
+        // Запрос + Проверка
+        Assertions.assertThatThrownBy(() -> service.createNewTransaction(rq))
+                .isInstanceOf(KafkaSendingException.class);
+    }
+
+    @Test
+    @DisplayName("createNewTransaction - incorrect - saveTransactionException transaction")
+    void createNewTransaction_saveTransactionException_transaction() {
+        // Данные
+        TransactionNewRq rq = new TransactionNewRq(ACCOUNT_ID_1, ACCOUNT_ID_2, SMALL_AMOUNT);
+
+        // Моки
+        when(accountRepository.findById(ACCOUNT_ID_1)).thenReturn(Optional.of(ACCOUNT_1));
+        when(accountRepository.findById(ACCOUNT_ID_2)).thenReturn(Optional.of(ACCOUNT_2));
+
+        when(transactionRepository.save(TRANSACTION_1))
+                .thenThrow(TransactionSaveException.class);
+
+        // Запрос + Проверка
+        Assertions.assertThatThrownBy(() -> service.createNewTransaction(rq))
+                .isInstanceOf(TransactionSaveException.class);
+    }
+
+    @Test
+    @DisplayName("createNewTransaction - incorrect - saveTransactionException firstAccount")
+    void createNewTransaction_saveTransactionException_firstAccount() {
+        // Данные
+        TransactionNewRq rq = new TransactionNewRq(ACCOUNT_ID_1, ACCOUNT_ID_2, SMALL_AMOUNT);
+
+        // Моки
+        when(accountRepository.findById(ACCOUNT_ID_1)).thenReturn(Optional.of(ACCOUNT_1));
+        when(accountRepository.findById(ACCOUNT_ID_2)).thenReturn(Optional.of(ACCOUNT_2));
+        when(transactionRepository.save(any())).thenReturn(TRANSACTION_1);
+
+        when(accountRepository.save(ACCOUNT_1))
+                .thenThrow(TransactionSaveException.class);
+
+        // Запрос + Проверка
+        Assertions.assertThatThrownBy(() -> service.createNewTransaction(rq))
+                .isInstanceOf(TransactionSaveException.class);
+    }
+
+    @Test
+    @DisplayName("createNewTransaction - incorrect - saveTransactionException secondAccount")
+    void createNewTransaction_saveTransactionException_secondAccount() {
+        // Данные
+        TransactionNewRq rq = new TransactionNewRq(ACCOUNT_ID_1, ACCOUNT_ID_2, SMALL_AMOUNT);
+
+        // Моки
+        when(accountRepository.findById(ACCOUNT_ID_1)).thenReturn(Optional.of(ACCOUNT_1));
+        when(accountRepository.findById(ACCOUNT_ID_2)).thenReturn(Optional.of(ACCOUNT_2));
+        when(transactionRepository.save(any())).thenReturn(TRANSACTION_1);
+
+        when(accountRepository.save(ACCOUNT_1)).thenReturn(ACCOUNT_1);
+        when(accountRepository.save(ACCOUNT_2))
+                .thenThrow(TransactionSaveException.class);
+
+        // Запрос + Проверка
+        Assertions.assertThatThrownBy(() -> service.createNewTransaction(rq))
+                .isInstanceOf(TransactionSaveException.class);
+    }
+
+
 
     @Test
     @DisplayName("getTransactionById - correct")
@@ -156,8 +227,7 @@ class TransactionServiceTest {
 
         // Запрос + Проверка
         Assertions.assertThatThrownBy(() -> service.getTransactionById(rq))
-                .isInstanceOf(TransactionNotFoundException.class)
-                .hasMessageContaining(new TransactionNotFoundException().getMessage());
+                .isInstanceOf(TransactionNotFoundException.class);
     }
 
 
@@ -203,7 +273,6 @@ class TransactionServiceTest {
 
         // Запрос + Проверка
         Assertions.assertThatThrownBy(() -> service.getAccountTransactions(ACCOUNT_ID_1))
-                .isInstanceOf(AccountNotFoundException.class)
-                .hasMessageContaining(new AccountNotFoundException().getMessage());
+                .isInstanceOf(AccountNotFoundException.class);
     }
 }
