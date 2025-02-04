@@ -2,7 +2,6 @@ package nflx.rozhnov.transactionservice.dto.response;
 
 import lombok.*;
 
-import java.math.BigDecimal;
 import java.util.Date;
 import java.util.UUID;
 
@@ -11,10 +10,7 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TransactionRs {
+public class TransactionNewRs {
     private UUID transactionId;
     private Date timestamp;
-    private Long fromAccount;
-    private Long toAccount;
-    private BigDecimal amount;
 }
